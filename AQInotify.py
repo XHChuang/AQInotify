@@ -1,21 +1,26 @@
-# 爬現空氣品質資訊並篩選特定高測站傳送訊息
-依現行空氣品質嚴重惡化警告發布及緊急防制辦法，當污染物達到特定條件的時候就要啟動應變作為，而如何建立一個提醒機制
-當空品惡化的時可以馬上知道哪裡不好，何種污染物，可以作為應變參考。
+import requests
+import pandas as pd
+import json
+import datetime ,time
 
-## 使用工具
-* [python](https://www.python.org/)
-  * requests
-  * pandas
-  * json
-* [Line Notify](https://notify-bot.line.me/zh_TW/)
+'''
+定義全域變數，設定發訊token及標準篩定
+'''
 
-## 爬環保署空品資訊
-現環保署有個公開資料平台，只要註冊會員取的apikey，即可很輕易的抓到相關的資訊，歷史資訊也可以！
+now = datetime.datetime.now()
+limAQ,limAQ2,limAQ3,limAQ4,limAQ5=100,150,200,300,400
+limPM,limPM2,limPM3=35.5,54.5,150.5
+limO32,limO33,limO34=125,165,205
+limp10,limp102,limp103=101,255,355
+limso2,limso22,limso23=76,186,305
+limno2,limno22,limno23=101,361,650
+limco8,limco82,limco83=9.5,12.5,15.5
+apikey='your-api-key'
 
-[環保署開放資料平台](https://data.epa.gov.tw/)
+# 設定發訊
+token1="token1" #放入你的token
 
-[本次空品資料資料集](https://data.epa.gov.tw/dataset/detail/AQX_P_432)
-```py
+## 爬環署AQIand空品資訊，並存入backup
 def AQI_r():
     r=requests.get('https://data.epa.gov.tw/api/v2/aqx_p_432?api_key='+apikey)
     dfR=pd.DataFrame(json.loads(r.text)["records"])
@@ -28,10 +33,7 @@ def AQI_r():
     df2.loc[:,'aqi'].astype(int)
     df2.loc[:,'pm2.5_avg'].astype(float)
     return df2,r
-```
-## 呈現資訊
-有了空品資料之後，再來是要篩呈現的資訊，本次選擇兩種呈現方式，包含AQI值及PM<sub>2.5</sub>的濃度
-```
+
 def textA(df1):#正常情況
     text=''
     for i in range(0,len(df1)):
@@ -43,12 +45,7 @@ def textB(df1):#臭氧八小時例外
     for i in range(0,len(df1)):
         text=text+'\n'+df1['sitename'][i]+'：'+df1['pollutant'][i]+'('+str(df1['aqi'][i])+') PM2.5(\u03BCg/m3)：'+'('+str(df1['pm2.5_avg'][i])+')'
     return text
-```
 
-## 發送訊息
-再來就是要因應不同的情況來發送結果拉，這邊主要針對比較常見的紅色及橘色去做分類，並且把臭氧八小時的例外情況也給考慮進去了
-
-```py
 def AQI_msg(df1): #橘色情況
     filt = (df1['aqi']>limAQ)
     df2=df1.loc[filt]
@@ -90,14 +87,14 @@ def AQI_msg(df1): #橘色情況
         if o3.sum()>=1 and pm.sum()<2 and pm10.sum()<2 and o32.sum()<2 and so2.sum()<2 and no2.sum()<2 and co8.sum()<2:
             k=0
             params1 = {"message":textO1+textA(df2)}
-        elif o3.sum()>=2 and pm.sum()>2:#站橘但PM同超標
+        elif o3.sum()>=2 and pm.sum()>2:#站紅但PM同超標
             k=1
             params1 = {"message":textO2+textB(df2)}
         else:
             k=1
-            params1 = {"message":textO2+textA(df2)} ## 初級預警
+            params1 = {"message":textO2+textA(df2)} ## 中級預警
 
     r = requests.post("https://notify-api.line.me/api/notify",headers=headers, params=params1)
-```
 
-最後的最後當然還是可以在後續寫個log，用於記錄每次爬蟲的結果跟成效，就因每個狀況需求不同拉~
+# df,r=AQI_r()
+# AQI_msg(df)
