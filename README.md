@@ -85,7 +85,7 @@ def AQI_msg(df1): #橘色情況
         else:
             k=2
             params1 = {"message":textR2+textA(df2)} ## 中級預警
-    
+        r = requests.post("https://notify-api.line.me/api/notify",headers=headers, params=params1)    
     elif aqi.sum()>=1:#站橘情況
         if o3.sum()>=1 and pm.sum()<2 and pm10.sum()<2 and o32.sum()<2 and so2.sum()<2 and no2.sum()<2 and co8.sum()<2:
             k=0
@@ -96,8 +96,7 @@ def AQI_msg(df1): #橘色情況
         else:
             k=1
             params1 = {"message":textO2+textA(df2)} ## 初級預警
-
-    r = requests.post("https://notify-api.line.me/api/notify",headers=headers, params=params1)
+        r = requests.post("https://notify-api.line.me/api/notify",headers=headers, params=params1)
 ```
 
 最後的最後當然還是可以在後續寫個log，用於記錄每次爬蟲的結果跟成效，就因每個狀況需求不同拉~
